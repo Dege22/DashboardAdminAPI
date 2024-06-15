@@ -137,6 +137,10 @@ def start_contact(contact: ContactStart, response: Response, request: Request):
             domain=request.client.host,  # Domínio do cookie
             path="/"  # Caminho do cookie
         )
+        response.headers["Set-Cookie"] = f"session_id={new_id}; HttpOnly; Path=/; Max-Age=300"
+
+        # Log de depuração
+        print(f"Session started: {new_id}")
 
         return {"message": "Session started successfully"}
     except requests.exceptions.RequestException as e:
@@ -148,12 +152,12 @@ def start_contact(contact: ContactStart, response: Response, request: Request):
 def complete_contact(contact: ContactComplete, session_id: Optional[str] = Cookie(None)):
     ensure_csv_exists()
     try:
-        if not session_id or session_id not in sessions:
-            raise HTTPException(status_code=404, detail="Session not found")
-
         # Log de depuração
         print(f"Session ID received: {session_id}")
         print(f"Sessions stored: {sessions}")
+
+        if not session_id or session_id not in sessions:
+            raise HTTPException(status_code=404, detail="Session not found")
 
         # Atualizar os dados da sessão com os dados fornecidos, ignorando valores vazios
         for key, value in contact.dict().items():
@@ -174,12 +178,12 @@ def complete_contact(contact: ContactComplete, session_id: Optional[str] = Cooki
 def finish_contact(session_id: Optional[str] = Cookie(None)):
     ensure_csv_exists()
     try:
-        if not session_id or session_id not in sessions:
-            raise HTTPException(status_code=404, detail="Session not found")
-
         # Log de depuração
         print(f"Finishing session ID: {session_id}")
         print(f"Sessions before finishing: {sessions}")
+
+        if not session_id or session_id not in sessions:
+            raise HTTPException(status_code=404, detail="Session not found")
 
         # Remover a sessão
         del sessions[session_id]
