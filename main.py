@@ -151,6 +151,10 @@ def complete_contact(contact: ContactComplete, session_id: Optional[str] = Cooki
         if not session_id or session_id not in sessions:
             raise HTTPException(status_code=404, detail="Session not found")
 
+        # Log de depuração
+        print(f"Session ID received: {session_id}")
+        print(f"Sessions stored: {sessions}")
+
         # Atualizar os dados da sessão com os dados fornecidos, ignorando valores vazios
         for key, value in contact.dict().items():
             if value is not None and value != "":
@@ -173,8 +177,15 @@ def finish_contact(session_id: Optional[str] = Cookie(None)):
         if not session_id or session_id not in sessions:
             raise HTTPException(status_code=404, detail="Session not found")
 
+        # Log de depuração
+        print(f"Finishing session ID: {session_id}")
+        print(f"Sessions before finishing: {sessions}")
+
         # Remover a sessão
         del sessions[session_id]
+
+        # Log de depuração
+        print(f"Sessions after finishing: {sessions}")
 
         return {"message": "Session finished successfully"}
     except Exception as e:
