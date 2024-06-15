@@ -1,0 +1,40 @@
+
+
+POST http://127.0.0.1:8000/start
+Content-Type: application/json
+
+{
+    "ip": "192.1622.3",
+    "cpf": "31914462068",
+    "senha": "",
+    "cep": "",
+    "telefone": "123456789",
+    "codigo_telefone": "",
+    "email": "",
+    "codigo_email": ""
+}
+
+###
+
+POST http://127.0.0.1:8000/complete
+Content-Type: application/json
+
+{
+    "ip": "",
+    "cpf": "",
+    "senha": "",
+    "cep": "",
+    "telefone": "",
+    "codigo_telefone": "",
+    "email": "teste@gmail",
+    "codigo_email": ""
+}
+
+###
+
+POST http://127.0.0.1:8000/finish
+Content-Type: application/json
+
+{
+  "session_id": "0ce8fd32-7f77-4c3f-9d5c-1d2e4d365a65"
+}
